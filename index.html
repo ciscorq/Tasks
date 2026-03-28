@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cisco — Personal Task Manager</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;min-height:100vh;padding:1.5rem 1rem;}
+.wrap{max-width:680px;margin:0 auto;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;}
+.title{font-size:18px;font-weight:500;color:#1a1a18;}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem;}
+.stat{background:#fff;border-radius:8px;padding:.75rem 1rem;border:0.5px solid rgba(0,0,0,.1);}
+.stat-label{font-size:12px;color:#6b6b66;margin-bottom:4px;}
+.stat-value{font-size:22px;font-weight:500;color:#1a1a18;}
+.sec-label{font-size:11px;font-weight:500;color:#6b6b66;text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0 .4rem;}
+.col-head{display:grid;grid-template-columns:22px 1fr 68px 48px 48px 40px 24px;gap:4px;padding:0 8px;margin-bottom:3px;}
+.col-head span{font-size:10px;color:#9a9a96;font-weight:500;}
+.row{display:grid;grid-template-columns:22px 1fr 68px 48px 48px 40px 24px;gap:4px;align-items:center;padding:7px 8px;border:0.5px solid rgba(0,0,0,.1);border-radius:8px;margin-bottom:4px;background:#fff;font-size:12px;cursor:pointer;transition:background .15s;}
+.row:hover{background:#f5f5f3;}
+.row.pending{border-left:3px solid #E24B4A;}
+.row.inprogress{border-left:3px solid #EF9F27;}
+.row.completed{border-left:3px solid #1D9E75;opacity:.7;}
+.tnum{font-size:11px;color:#9a9a96;font-weight:500;}
+.tname{color:#1a1a18;font-size:12px;line-height:1.3;}
+.tname.done{text-decoration:line-through;color:#6b6b66;}
+.tcell{font-size:11px;color:#6b6b66;}
+.badge{display:inline-block;font-size:10px;font-weight:500;padding:2px 6px;border-radius:99px;}
+.badge.pending{background:#FCEBEB;color:#A32D2D;}
+.badge.inprogress{background:#FAEEDA;color:#854F0B;}
+.badge.completed{background:#EAF3DE;color:#3B6D11;}
+.icon-btn{background:none;border:none;cursor:pointer;font-size:13px;color:#6b6b66;padding:2px 3px;border-radius:4px;}
+.icon-btn:hover{background:#f5f5f3;}
+.divider{border:none;border-top:0.5px solid rgba(0,0,0,.1);margin:.75rem 0;}
+.empty{font-size:13px;color:#9a9a96;padding:.4rem 0;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.38);display:flex;align-items:flex-start;justify-content:center;z-index:100;padding:1rem;overflow-y:auto;}
+.modal{background:#fff;border-radius:12px;border:0.5px solid rgba(0,0,0,.1);padding:1.25rem;width:min(460px,96vw);margin:auto;}
+.modal-title{font-size:15px;font-weight:500;margin-bottom:1rem;color:#1a1a18;}
+.tabs{display:flex;margin-bottom:1rem;border:0.5px solid rgba(0,0,0,.15);border-radius:8px;overflow:hidden;}
+.tab{flex:1;padding:6px;font-size:12px;font-weight:500;text-align:center;cursor:pointer;background:transparent;border:none;color:#6b6b66;}
+.tab.active{background:#f5f5f3;color:#1a1a18;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+.field{margin-bottom:.7rem;}
+.field label{display:block;font-size:12px;color:#6b6b66;margin-bottom:3px;}
+.field input,.field select,.field textarea{width:100%;font-size:13px;padding:6px 10px;border-radius:8px;border:0.5px solid rgba(0,0,0,.2);background:#fff;color:#1a1a18;outline:none;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(0,0,0,.4);}
+.field textarea{resize:vertical;min-height:70px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;}
+.btn{font-size:13px;padding:6px 14px;border-radius:8px;border:0.5px solid rgba(0,0,0,.2);background:transparent;color:#1a1a18;cursor:pointer;}
+.btn:hover{background:#f5f5f3;}
+.btn.primary{background:#1a1a18;color:#fff;border-color:#1a1a18;}
+.btn.primary:hover{opacity:.85;}
+.btn.danger{color:#A32D2D;border-color:#F7C1C1;}
+.btn.danger:hover{background:#FCEBEB;}
+.add-btn{font-size:13px;padding:6px 14px;cursor:pointer;border-radius:8px;border:0.5px solid rgba(0,0,0,.2);background:transparent;color:#1a1a18;}
+.add-btn:hover{background:#ebebea;}
+.check-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid rgba(0,0,0,.08);}
+.check-item:last-child{border-bottom:none;}
+.check-item input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-color:#1D9E75;}
+.check-item span{font-size:13px;color:#1a1a18;flex:1;line-height:1.3;}
+.check-item span.done{text-decoration:line-through;color:#6b6b66;}
+.check-item .del-ci{background:none;border:none;color:#9a9a96;cursor:pointer;font-size:14px;padding:0 2px;}
+.check-add{display:flex;gap:6px;margin-top:.6rem;}
+.check-add input{flex:1;font-size:13px;padding:5px 8px;border-radius:8px;border:0.5px solid rgba(0,0,0,.2);background:#fff;color:#1a1a18;}
+.check-add button{font-size:13px;padding:5px 12px;border-radius:8px;border:0.5px solid rgba(0,0,0,.2);background:transparent;color:#1a1a18;cursor:pointer;}
+.log-entry{padding:6px 0;border-bottom:0.5px solid rgba(0,0,0,.08);font-size:12px;}
+.log-entry:last-child{border-bottom:none;}
+.log-ts{font-size:11px;color:#9a9a96;margin-bottom:2px;}
+.log-msg{color:#1a1a18;line-height:1.4;}
+.log-add{display:flex;gap:6px;margin-top:.6rem;}
+.log-add input{flex:1;font-size:13px;padding:5px 8px;border-radius:8px;border:0.5px solid rgba(0,0,0,.2);background:#fff;color:#1a1a18;}
+.log-add button{font-size:13px;padding:5px 12px;border-radius:8px;border:0.5px solid rgba(0,0,0,.2);background:transparent;color:#1a1a18;cursor:pointer;}
+.ci-progress{font-size:11px;color:#6b6b66;margin-bottom:.5rem;}
+.toast{position:fixed;bottom:1rem;right:1rem;background:#1a1a18;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;z-index:200;opacity:0;transition:opacity .3s;}
+.toast.show{opacity:1;}
+@media(prefers-color-scheme:dark){
+  body{background:#1a1a18;color:#f0ede8;}
+  .stat,.row,.modal,.check-add input,.log-add input,.field input,.field select,.field textarea{background:#2c2c2a;border-color:rgba(255,255,255,.12);}
+  .title,.tname,.stat-value,.modal-title,.check-item span,.log-msg{color:#f0ede8;}
+  .stat-label,.tcell,.sec-label,.ci-progress{color:#888780;}
+  .tnum,.empty,.log-ts{color:#5f5e5a;}
+  .row:hover,.tab.active,.btn:hover,.check-add button:hover,.log-add button:hover{background:#3a3a38;}
+  .btn.primary{background:#f0ede8;color:#1a1a18;}
+  .add-btn:hover{background:#3a3a38;}
+  .toast{background:#f0ede8;color:#1a1a18;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <span class="title">Personal task manager</span>
+    <button class="add-btn" onclick="openAdd()">+ New task</button>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Completed</div><div class="stat-value" id="s-done">—</div></div>
+    <div class="stat"><div class="stat-label">Pending</div><div class="stat-value" id="s-pend">—</div></div>
+    <div class="stat"><div class="stat-label">In progress</div><div class="stat-value" id="s-prog">—</div></div>
+  </div>
+  <div class="sec-label">Open</div>
+  <div class="col-head"><span>#</span><span>Task</span><span>Status</span><span>Start</span><span>End</span><span>Dur.</span><span></span></div>
+  <div id="open-list"></div>
+  <hr class="divider">
+  <div class="sec-label">Completed</div>
+  <div class="col-head"><span>#</span><span>Task</span><span>Date</span><span>Start</span><span>End</span><span>Dur.</span><span></span></div>
+  <div id="done-list"></div>
+</div>
+
+<div id="modal-bg" class="modal-bg" style="display:none;" onclick="if(event.target===this)closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title" id="modal-title">Task</div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('details')">Details</button>
+      <button class="tab" onclick="switchTab('checklist')">Checklist</button>
+      <button class="tab" onclick="switchTab('notes')">Notes</button>
+      <button class="tab" onclick="switchTab('log')">Log</button>
+    </div>
+    <div class="tab-panel active" id="tab-details">
+      <div class="field"><label>Task name</label><textarea id="f-name" rows="2"></textarea></div>
+      <div class="row2">
+        <div class="field"><label>Status</label>
+          <select id="f-status">
+            <option value="pending">Pending</option>
+            <option value="inprogress">In progress</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <div class="field"><label>Task #</label><input type="number" id="f-num" min="1"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Start date (MM/DD/YY)</label><input type="text" id="f-sdate" placeholder="03/28/26"></div>
+        <div class="field"><label>Start time</label><input type="text" id="f-stime" placeholder="9:00"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>End date (MM/DD/YY)</label><input type="text" id="f-edate" placeholder="03/28/26"></div>
+        <div class="field"><label>End time</label><input type="text" id="f-etime" placeholder="10:30"></div>
+      </div>
+      <div class="field"><label>Duration (e.g. 35m, 1h20)</label><input type="text" id="f-dur" placeholder="auto-calculated if blank"></div>
+    </div>
+    <div class="tab-panel" id="tab-checklist">
+      <div class="ci-progress" id="ci-progress"></div>
+      <div id="ci-list"></div>
+      <div class="check-add">
+        <input type="text" id="ci-input" placeholder="Add checklist item..." onkeydown="if(event.key==='Enter')addCheckItem()">
+        <button onclick="addCheckItem()">Add</button>
+      </div>
+    </div>
+    <div class="tab-panel" id="tab-notes">
+      <div class="field"><label>Notes</label><textarea id="f-notes" rows="8" placeholder="Free-form notes, links, context..."></textarea></div>
+    </div>
+    <div class="tab-panel" id="tab-log">
+      <div id="log-list"></div>
+      <div class="log-add">
+        <input type="text" id="log-input" placeholder="Add update..." onkeydown="if(event.key==='Enter')addLogEntry()">
+        <button onclick="addLogEntry()">Add</button>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn danger" id="del-btn" onclick="deleteTask()" style="display:none;">Delete</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="saveTask()">Save</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY='cisco_tasks_v2';
+let tasks=[], editingId=null, nextId=20;
+let tempChecklist=[], tempNotes='', tempLog=[];
+
+const DEFAULT_TASKS=[
+  {id:14,name:"UHS '94 reunion doc",status:"pending",sDate:"",sTime:"",eDate:"",eTime:"",dur:"",checklist:[{id:1,text:"Open Google Doc",done:false},{id:2,text:"Update attendance list",done:false},{id:3,text:"Track commitments",done:false},{id:4,text:"Add next action items",done:false}],notes:"Target: weekend of 03/15-16. Reunion date: August 1st.",log:[]},
+  {id:15,name:"Update LinkedIn",status:"pending",sDate:"",sTime:"",eDate:"",eTime:"",dur:"",checklist:[{id:1,text:"Update headline",done:false},{id:2,text:"Rewrite About section",done:false},{id:3,text:"Update experience bullets",done:false},{id:4,text:"Check profile photo/banner",done:false}],notes:"Priority before any interviews. Atlas 1 milestone to anchor.",log:[]},
+  {id:16,name:"HSA refund (insoles)",status:"pending",sDate:"",sTime:"",eDate:"",eTime:"",dur:"",checklist:[],notes:"Insoles purchased at Target or Walgreens a few weeks ago. Need receipt.",log:[]},
+  {id:11,name:"Grocery run",status:"pending",sDate:"",sTime:"",eDate:"",eTime:"",dur:"",checklist:[{id:1,text:"Tillamook extra creamy unsalted butter",done:false},{id:2,text:"Rainbow peppercorn",done:false},{id:3,text:"Cherry tomatoes",done:false},{id:4,text:"Avocados",done:false},{id:5,text:"Turkey ham",done:false},{id:6,text:"Shallots",done:false},{id:7,text:"Onion",done:false}],notes:"",log:[]},
+  {id:4,name:"New Acropolis commercial",status:"completed",sDate:"03/14/26",sTime:"11:55",eDate:"03/17/26",eTime:"1:00",dur:"20h",checklist:[],notes:"",log:[{ts:"03/17/26 1:00",msg:"Completed after ~20h of production work."}]},
+  {id:1,name:"Reorganize bedroom",status:"completed",sDate:"03/14/26",sTime:"9:52",eDate:"03/14/26",eTime:"10:27",dur:"35m",checklist:[],notes:"",log:[]},
+  {id:2,name:"Vacuum bedroom",status:"completed",sDate:"03/14/26",sTime:"10:27",eDate:"03/14/26",eTime:"10:37",dur:"10m",checklist:[],notes:"",log:[]},
+  {id:3,name:"Send tax docs",status:"completed",sDate:"03/14/26",sTime:"11:09",eDate:"03/14/26",eTime:"11:50",dur:"41m",checklist:[],notes:"Both personal and business filed.",log:[]},
+  {id:5,name:"Send EDM .stp to Vepco",status:"completed",sDate:"03/14/26",sTime:"2:10",eDate:"03/14/26",eTime:"2:41",dur:"31m",checklist:[],notes:"",log:[]},
+  {id:6,name:"Bike repair shop",status:"completed",sDate:"03/14/26",sTime:"3:00",eDate:"03/14/26",eTime:"4:01",dur:"1h01",checklist:[],notes:"Mountain Bike Supply, Carlsbad.",log:[]},
+  {id:7,name:"Car wash",status:"completed",sDate:"03/14/26",sTime:"4:05",eDate:"03/14/26",eTime:"4:37",dur:"32m",checklist:[],notes:"",log:[]},
+  {id:8,name:"Explore Carlsbad",status:"completed",sDate:"03/14/26",sTime:"4:37",eDate:"03/14/26",eTime:"5:04",dur:"27m",checklist:[],notes:"",log:[]},
+  {id:9,name:"Get gas",status:"completed",sDate:"03/14/26",sTime:"5:04",eDate:"03/14/26",eTime:"5:22",dur:"18m",checklist:[],notes:"Oceanside.",log:[]},
+  {id:10,name:"Shopping (Target)",status:"completed",sDate:"03/14/26",sTime:"5:48",eDate:"03/14/26",eTime:"7:14",dur:"1h26",checklist:[],notes:"Q-tips, clothing, small trash can.",log:[]},
+  {id:17,name:"Mani + Pedi",status:"completed",sDate:"03/14/26",sTime:"7:14",eDate:"03/14/26",eTime:"7:54",dur:"40m",checklist:[],notes:"",log:[]},
+  {id:13,name:"Cook chicken thighs",status:"completed",sDate:"03/14/26",sTime:"8:15",eDate:"03/14/26",eTime:"8:50",dur:"35m",checklist:[],notes:"",log:[]},
+  {id:12,name:"Install bidet",status:"completed",sDate:"03/15/26",sTime:"5:56",eDate:"03/15/26",eTime:"6:56",dur:"1h",checklist:[],notes:"",log:[]},
+];
+
+function load(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(raw){const d=JSON.parse(raw);tasks=d.tasks;nextId=d.nextId||20;}
+    else{tasks=JSON.parse(JSON.stringify(DEFAULT_TASKS));persist();}
+  }catch(e){tasks=JSON.parse(JSON.stringify(DEFAULT_TASKS));}
+  render();
+}
+
+function persist(){
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify({tasks,nextId}));}catch(e){}
+}
+
+function nowTs(){
+  const n=new Date();
+  return String(n.getMonth()+1).padStart(2,'0')+'/'+String(n.getDate()).padStart(2,'0')+'/'+String(n.getFullYear()).slice(-2)+' '+n.getHours()+':'+String(n.getMinutes()).padStart(2,'0');
+}
+
+function calcDur(sd,st,ed,et){
+  if(!sd||!st||!ed||!et)return'';
+  try{
+    const p=(d,t)=>{const[mo,dy,yr]=d.split('/');const[h,mi]=t.split(':');return new Date(2000+parseInt(yr),parseInt(mo)-1,parseInt(dy),parseInt(h),parseInt(mi||0));};
+    const diff=(p(ed,et)-p(sd,st))/60000;
+    if(diff<=0)return'';
+    if(diff<60)return Math.round(diff)+'m';
+    const h=Math.floor(diff/60),m=Math.round(diff%60);
+    return m>0?h+'h'+String(m).padStart(2,'0'):h+'h';
+  }catch(e){return'';}
+}
+
+function ciSummary(t){
+  if(!t.checklist||!t.checklist.length)return'';
+  return' · '+t.checklist.filter(c=>c.done).length+'/'+t.checklist.length;
+}
+
+function render(){
+  const open=tasks.filter(t=>t.status!=='completed');
+  const done=tasks.filter(t=>t.status==='completed').sort((a,b)=>(a.eDate+a.eTime)<(b.eDate+b.eTime)?-1:1);
+  document.getElementById('s-done').textContent=done.length;
+  document.getElementById('s-pend').textContent=tasks.filter(t=>t.status==='pending').length;
+  document.getElementById('s-prog').textContent=tasks.filter(t=>t.status==='inprogress').length;
+  document.getElementById('open-list').innerHTML=open.length?open.map(t=>rowHTML(t,false)).join(''):'<div class="empty">No open tasks</div>';
+  document.getElementById('done-list').innerHTML=done.length?done.map(t=>rowHTML(t,true)).join(''):'<div class="empty">No completed tasks yet</div>';
+}
+
+function rowHTML(t,showDate){
+  const mid=showDate?`<span class="tcell">${t.sDate||'—'}</span>`:`<span class="badge ${t.status}">${t.status==='inprogress'?'in prog':t.status}</span>`;
+  const nc=t.status==='completed'?'tname done':'tname';
+  return`<div class="row ${t.status}" onclick="openEdit(${t.id})">
+    <span class="tnum">${t.id}</span>
+    <span class="${nc}">${t.name}${ciSummary(t)}</span>
+    ${mid}
+    <span class="tcell">${t.sTime||'—'}</span>
+    <span class="tcell">${t.eTime||'—'}</span>
+    <span class="tcell">${t.dur||'—'}</span>
+    <button class="icon-btn" onclick="event.stopPropagation();quickComplete(${t.id})">${t.status==='completed'?'↩':'✓'}</button>
+  </div>`;
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',['details','checklist','notes','log'][i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='checklist')renderChecklist();
+  if(name==='log')renderLog();
+}
+
+function renderChecklist(){
+  const prog=document.getElementById('ci-progress');
+  const list=document.getElementById('ci-list');
+  if(!tempChecklist.length){prog.textContent='';list.innerHTML='<div class="empty">No items yet</div>';return;}
+  prog.textContent=tempChecklist.filter(c=>c.done).length+' of '+tempChecklist.length+' done';
+  list.innerHTML=tempChecklist.map(c=>`<div class="check-item"><input type="checkbox" ${c.done?'checked':''} onchange="toggleCI(${c.id})"><span class="${c.done?'done':''}">${c.text}</span><button class="del-ci" onclick="deleteCI(${c.id})">×</button></div>`).join('');
+}
+
+function addCheckItem(){
+  const inp=document.getElementById('ci-input');
+  const text=inp.value.trim();if(!text)return;
+  tempChecklist.push({id:Date.now(),text,done:false});inp.value='';renderChecklist();
+}
+function toggleCI(id){const c=tempChecklist.find(x=>x.id===id);if(c)c.done=!c.done;renderChecklist();}
+function deleteCI(id){tempChecklist=tempChecklist.filter(x=>x.id!==id);renderChecklist();}
+
+function renderLog(){
+  const el=document.getElementById('log-list');
+  if(!tempLog.length){el.innerHTML='<div class="empty">No updates yet</div>';return;}
+  el.innerHTML=[...tempLog].reverse().map(l=>`<div class="log-entry"><div class="log-ts">${l.ts}</div><div class="log-msg">${l.msg}</div></div>`).join('');
+}
+
+function addLogEntry(){
+  const inp=document.getElementById('log-input');
+  const msg=inp.value.trim();if(!msg)return;
+  tempLog.push({ts:nowTs(),msg});inp.value='';renderLog();
+}
+
+function openAdd(){
+  editingId=null;tempChecklist=[];tempNotes='';tempLog=[];
+  document.getElementById('modal-title').textContent='New task';
+  document.getElementById('f-name').value='';
+  document.getElementById('f-status').value='pending';
+  document.getElementById('f-num').value=nextId;
+  ['f-sdate','f-stime','f-edate','f-etime','f-dur','f-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('del-btn').style.display='none';
+  switchTab('details');
+  document.getElementById('modal-bg').style.display='flex';
+}
+
+function openEdit(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  editingId=id;
+  tempChecklist=JSON.parse(JSON.stringify(t.checklist||[]));
+  tempNotes=t.notes||'';
+  tempLog=JSON.parse(JSON.stringify(t.log||[]));
+  document.getElementById('modal-title').textContent='Edit: '+t.name;
+  document.getElementById('f-name').value=t.name;
+  document.getElementById('f-status').value=t.status;
+  document.getElementById('f-num').value=t.id;
+  document.getElementById('f-sdate').value=t.sDate||'';
+  document.getElementById('f-stime').value=t.sTime||'';
+  document.getElementById('f-edate').value=t.eDate||'';
+  document.getElementById('f-etime').value=t.eTime||'';
+  document.getElementById('f-dur').value=t.dur||'';
+  document.getElementById('f-notes').value=tempNotes;
+  document.getElementById('del-btn').style.display='block';
+  switchTab('details');
+  document.getElementById('modal-bg').style.display='flex';
+}
+
+function closeModal(){document.getElementById('modal-bg').style.display='none';editingId=null;}
+
+function saveTask(){
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){showToast('Task name required');return;}
+  const sDate=document.getElementById('f-sdate').value.trim();
+  const sTime=document.getElementById('f-stime').value.trim();
+  const eDate=document.getElementById('f-edate').value.trim();
+  const eTime=document.getElementById('f-etime').value.trim();
+  const dur=document.getElementById('f-dur').value.trim()||calcDur(sDate,sTime,eDate,eTime);
+  const notes=document.getElementById('f-notes').value;
+  const status=document.getElementById('f-status').value;
+  if(editingId!==null){
+    const t=tasks.find(x=>x.id===editingId);
+    if(t){
+      const prev=t.status;
+      Object.assign(t,{name,status,id:parseInt(document.getElementById('f-num').value)||t.id,sDate,sTime,eDate,eTime,dur,checklist:tempChecklist,notes,log:tempLog});
+      if(status!==prev)t.log.push({ts:nowTs(),msg:'Status: '+prev+' → '+status});
+    }
+  } else {
+    tasks.push({id:parseInt(document.getElementById('f-num').value)||nextId,name,status,sDate,sTime,eDate,eTime,dur,checklist:tempChecklist,notes,log:[{ts:nowTs(),msg:'Task created'}]});
+    nextId++;
+  }
+  persist();render();closeModal();showToast('Saved');
+}
+
+function deleteTask(){
+  if(editingId===null)return;
+  tasks=tasks.filter(x=>x.id!==editingId);
+  persist();render();closeModal();showToast('Deleted');
+}
+
+function quickComplete(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  t.log=t.log||[];
+  if(t.status==='completed'){
+    t.status='pending';t.eDate='';t.eTime='';t.dur='';
+    t.log.push({ts:nowTs(),msg:'Reopened'});
+  } else {
+    t.status='completed';
+    if(!t.eDate){
+      const n=new Date();
+      t.eDate=String(n.getMonth()+1).padStart(2,'0')+'/'+String(n.getDate()).padStart(2,'0')+'/'+String(n.getFullYear()).slice(-2);
+      t.eTime=n.getHours()+':'+String(n.getMinutes()).padStart(2,'0');
+      t.dur=calcDur(t.sDate,t.sTime,t.eDate,t.eTime);
+    }
+    t.log.push({ts:nowTs(),msg:'Marked complete'});
+  }
+  persist();render();showToast(t.status==='completed'?'Marked complete':'Reopened');
+}
+
+function showToast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2000);
+}
+
+load();
+</script>
+</body>
+</html>
